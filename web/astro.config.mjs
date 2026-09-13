@@ -2,7 +2,7 @@ import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import { unified } from "@astrojs/markdown-remark";
 
-const base = process.env.SITE_BASE ?? "/MoE-Scope";
+const base = process.env.SITE_BASE ?? "/";
 // Markdown links need the same deployment prefix as Astro templates.
 function remarkBaseLinks() {
   return (tree) => {
@@ -21,7 +21,9 @@ export default defineConfig({
   markdown: { processor: unified({ remarkPlugins: [remarkBaseLinks] }) },
   output: "static",
   prefetch: true,
-  site: process.env.SITE_ORIGIN ?? "https://KingReaper6940.github.io",
+  site: process.env.SITE_ORIGIN ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:4321"),
   base,
   trailingSlash: "always",
 });

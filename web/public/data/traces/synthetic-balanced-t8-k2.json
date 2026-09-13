@@ -1,0 +1,107 @@
+{
+  "layer_index": 0,
+  "model_name": "moescope-synthetic-balanced",
+  "model_revision": "generator-v1-seed-20260912",
+  "num_routed_experts": 64,
+  "num_shared_experts": 0,
+  "phase": "prefill",
+  "routed_experts_per_token": 2,
+  "routing_rule": {
+    "score_function": "softmax",
+    "selection_method": "top_k",
+    "weight_normalization": "sum_to_one"
+  },
+  "schema_version": "1.0.0",
+  "step_index": 0,
+  "tokens": [
+    {
+      "expert_ids": [
+        0,
+        1
+      ],
+      "token_index": 0,
+      "weights": [
+        0.6224593312018546,
+        0.3775406687981454
+      ]
+    },
+    {
+      "expert_ids": [
+        2,
+        3
+      ],
+      "token_index": 1,
+      "weights": [
+        0.6224593312018545,
+        0.3775406687981454
+      ]
+    },
+    {
+      "expert_ids": [
+        4,
+        5
+      ],
+      "token_index": 2,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    },
+    {
+      "expert_ids": [
+        6,
+        7
+      ],
+      "token_index": 3,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    },
+    {
+      "expert_ids": [
+        8,
+        9
+      ],
+      "token_index": 4,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    },
+    {
+      "expert_ids": [
+        10,
+        11
+      ],
+      "token_index": 5,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    },
+    {
+      "expert_ids": [
+        12,
+        13
+      ],
+      "token_index": 6,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    },
+    {
+      "expert_ids": [
+        14,
+        15
+      ],
+      "token_index": 7,
+      "weights": [
+        0.6224593312018546,
+        0.37754066879814546
+      ]
+    }
+  ],
+  "trace_kind": "synthetic"
+}

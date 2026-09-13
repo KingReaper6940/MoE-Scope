@@ -2,6 +2,7 @@
 title: "Turning the lab into a project we can hand over"
 description: "The current release log: runnable tools, a trace explorer, an evidence page, and an explicit record of what remains open."
 publishedAt: 2026-09-12
+updatedAt: 2026-09-12
 number: 10
 readingTime: "3 min read"
 tags: [release, reproducibility, project log]
@@ -65,11 +66,12 @@ was published over weeks of activity that we cannot verify.
 
 ## What remains open
 
-We prepared a move into a new repository, `MoE-Scope`, with its own GitHub Pages
-website. Our navigation, journal links, and downloadable evidence now respect
-the repository's URL prefix. The publishing workflow rebuilds from the raw
-artifacts and runs the release checks before deployment. Repository access and
-the first successful hosted deployment are tracked separately from local completion.
+We moved the project into the new `MoE-Scope` repository and prepared its Astro
+site for Vercel. Navigation, journal links, and downloadable evidence resolve
+from the deployed domain root. The committed web dataset is generated from the
+versioned evidence bundle, so the host does not need the GPU or Python capture
+environment. Repository access and the first successful hosted deployment are
+tracked separately from local completion.
 
 The project is a research and inspection lab, not a production inference server.
 Future work includes Nsight hardware-counter analysis, repeated sessions,

@@ -3,8 +3,7 @@ import { sitePath } from "../lib/links";
 import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import summary from "../data/summary.json";
-import traces from "../data/traces.json";
-const featured = traces.find(t => t.trace.trace_kind === "captured") ?? traces[0];
+import featured from "../data/featured.json";
 const histogram = Array.from({length: featured.trace.num_routed_experts}, (_, e) => featured.trace.tokens.filter(t => t.expert_ids.includes(e)).length);
 const maxLoad = Math.max(...histogram);
 

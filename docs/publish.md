@@ -1,46 +1,45 @@
-# Publishing our lab
+# Publishing our lab on Vercel
 
-The migration target is the new `MoE-Scope` repository. Our code, tests, journal,
-and raw A100 evidence travel together. Historical evidence keeps its original
-timestamps, source archive, hashes, and original Git revision.
+The `KingReaper6940/MoE-Scope` repository contains our code, ten-entry journal,
+and raw NVIDIA A100 evidence. Historical evidence keeps its original timestamps,
+source archive, hashes, and model revision.
 
-The Astro site builds for `/MoE-Scope/`. Navigation, Markdown links, JavaScript
-trace downloads, generated assets, and canonical URLs share this base. For a
-custom domain, set `SITE_BASE=/` and `SITE_ORIGIN` to the HTTPS origin when building.
+The Astro site builds at the domain root. Navigation, Markdown links, JavaScript
+trace downloads, generated assets, and canonical URLs use that same base. Vercel
+supplies `VERCEL_PROJECT_PRODUCTION_URL`, which Astro uses for canonical URLs.
 
-## One-time GitHub setup
+## Import the repository
 
-1. Give our GitHub connection write access to the new repository.
-2. Import the committed project into its `main` branch, preserving existing work.
-3. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
-4. Run **Publish the lab** from Actions, or push a change to `main`.
+1. In Vercel, choose **Add New → Project** and import
+   `KingReaper6940/MoE-Scope`.
+2. Leave the root directory at the repository root.
+3. Deploy. The committed `vercel.json` selects Astro and defines the install,
+   build, and output settings.
 
-The workflow installs pinned project dependencies, checks Python behavior and
-the evidence, exports the website data, checks the browser compiler, builds the
-site, and verifies links before uploading a Pages artifact. A separate deployment
-job receives only Pages and OIDC write permissions. No Cloudflare token or GPU
-credentials are required.
+Vercel runs `npm --prefix web ci --no-audit --no-fund`, builds with
+`npm --prefix web run build`, and serves `web/dist`. The generated website data
+is committed, so deployment does not require Python, Runpod, model weights, or
+GPU credentials.
 
-The Pages action provides the actual owner origin and repository base path at
-build time. The deployment job reports the published URL. A successful local
-build alone does not mean the site has been published.
+For a custom domain, add it in the Vercel project after the first deployment.
+No environment variables are required. `SITE_ORIGIN` remains available as an
+explicit canonical-origin override.
 
-## Local verification
+## Refreshing evidence later
+
+When the versioned evidence changes, regenerate and verify the committed web data:
 
 ```bash
-python -m pip install -e . pytest==8.4.2
-python -m pytest
 python scripts/export_web.py
-npm --prefix web ci
+python -m pytest
 npm --prefix web test
 npm --prefix web run check
 npm --prefix web run build
 python scripts/check_site.py
-npm --prefix web run dev
 ```
 
-Open `http://localhost:4321/MoE-Scope/`. Check the evidence filters, a captured
-trace, its JSON download, and the links in a journal entry.
+The repository CI performs this full source-to-site validation. A Vercel build is
+deliberately smaller because it deploys the already reviewed data snapshot.
 
-Official deployment references: [Astro on GitHub Pages](https://docs.astro.build/en/guides/deploy/github/)
-and [GitHub Pages publishing configuration](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+Official references: [Astro on Vercel](https://vercel.com/docs/frameworks/frontend/astro)
+and [Vercel build configuration](https://vercel.com/docs/builds/configure-a-build).

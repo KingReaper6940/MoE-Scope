@@ -1,0 +1,67 @@
+{
+  "capture": {
+    "created_at": "2026-09-13T00:29:38.893441+00:00",
+    "model": "allenai/OLMoE-1B-7B-0924",
+    "revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+    "num_layers": 16,
+    "num_experts": 64,
+    "top_k": 8,
+    "hidden_size": 2048,
+    "intermediate_size": 1024,
+    "dtype": "bfloat16",
+    "device": "NVIDIA A100-SXM4-40GB",
+    "learned_block_checks": [
+      {
+        "prompt_id": "systems",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      },
+      {
+        "prompt_id": "code",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      },
+      {
+        "prompt_id": "math",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      },
+      {
+        "prompt_id": "science",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      },
+      {
+        "prompt_id": "narrative",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      },
+      {
+        "prompt_id": "long_systems",
+        "layer": 0,
+        "max_abs_error": 0.0,
+        "atol": 0.02,
+        "rtol": 0.02,
+        "passed": true
+      }
+    ]
+  },
+  "event_count": 480,
+  "prompt_count": 6,
+  "case_count": 90
+}
