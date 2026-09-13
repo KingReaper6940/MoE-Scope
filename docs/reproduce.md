@@ -109,10 +109,9 @@ of benchmark numbers. `export_web.py` expects released evidence under
 state. CPU/compiler examples remain available in that state.
 
 After copying completed GPU artifacts into `examples/evidence/`, regenerate the
-web data, validate it, and rebuild. The new `MoE-Scope` repository publishes
-through GitHub Pages using `.github/workflows/pages.yml`. See
-[publishing](publish.md) for setup. Local preview also uses `/MoE-Scope/`,
-so we verify the same paths that the deployed website uses.
+web data, validate it, and rebuild. The `MoE-Scope` repository publishes on
+Vercel using the root `vercel.json`. See [publishing](publish.md) for setup.
+The production website uses root-relative URLs, matching local development.
 
 ## Limits and next experiments
 

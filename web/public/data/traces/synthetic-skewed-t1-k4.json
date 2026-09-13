@@ -1,0 +1,34 @@
+{
+  "layer_index": 0,
+  "model_name": "moescope-synthetic-skewed",
+  "model_revision": "generator-v1-seed-20260912",
+  "num_routed_experts": 64,
+  "num_shared_experts": 0,
+  "phase": "prefill",
+  "routed_experts_per_token": 4,
+  "routing_rule": {
+    "score_function": "softmax",
+    "selection_method": "top_k",
+    "weight_normalization": "sum_to_one"
+  },
+  "schema_version": "1.0.0",
+  "step_index": 0,
+  "tokens": [
+    {
+      "expert_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "token_index": 0,
+      "weights": [
+        0.3499320087587726,
+        0.27252732244308187,
+        0.21224449212702542,
+        0.16529617667112
+      ]
+    }
+  ],
+  "trace_kind": "synthetic"
+}

@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Preserve captured measurement artifacts byte-for-byte across platforms.
+examples/evidence/** -text
+examples/evidence/gpu/profile.txt -whitespace
+web/public/data/profile.txt -text -whitespace

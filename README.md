@@ -7,9 +7,8 @@ to explicit matrix workloads and reproducible GPU measurements. We capture a
 pretrained OLMoE router, compile its expert assignments, replay prepared grouped
 GEMMs, and expose the artifacts in an interactive Astro website.
 
-[Explore the lab](https://KingReaper6940.github.io/MoE-Scope/lab/) ·
-[Inspect GPU evidence](https://KingReaper6940.github.io/MoE-Scope/results/) ·
-[Read the ten-chapter journal](https://KingReaper6940.github.io/MoE-Scope/#writing) ·
+[Website deployment guide](docs/publish.md) ·
+[Explore the lab locally](http://localhost:4321/lab/) ·
 [Reproduce the experiment](docs/reproduce.md)
 
 ## What we have built
@@ -96,8 +95,8 @@ npm run dev
 ```
 
 From the repository root, run `python scripts/check_site.py` after building.
-The static site targets GitHub Pages for `KingReaper6940/MoE-Scope`.
-See [publishing and migration](docs/publish.md) for the one-time setup.
+The static site is configured for Vercel at the domain root. See
+[publishing and deployment](docs/publish.md) for the one-time setup.
 
 ## Follow the artifacts
 

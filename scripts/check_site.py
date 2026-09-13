@@ -5,7 +5,7 @@ from urllib.parse import urlsplit, unquote
 import os
 
 ROOT = Path(__file__).resolve().parents[1] / "web/dist"
-BASE = os.environ.get("SITE_BASE", "/MoE-Scope").rstrip("/")
+BASE = os.environ.get("SITE_BASE", "/").rstrip("/")
 
 
 class Links(HTMLParser):
