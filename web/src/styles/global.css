@@ -1503,6 +1503,7 @@ a {
 /* Laboratory and evidence surfaces share the journal's paper and ink palette. */
 .primary-link { display: inline-flex; align-items: center; padding: 13px 18px; border: 1px solid var(--paper); background: var(--paper); color: var(--ink); box-shadow: 0 0 0 var(--paper); text-decoration: none; font: 600 .76rem/1.4 var(--mono); transition: transform 220ms ease, box-shadow 220ms ease; }
 .primary-link:hover { background: var(--paper); color: var(--ink); box-shadow: 4px 4px 0 var(--paper); transform: translate(-4px, -4px); }
+.hero-scope { transform: none; box-shadow: 7px 7px 0 #dfddd4; }
 .scope-chart i { background: var(--shared) !important; }
 .scope-chart i:nth-child(8n + 4) { background: var(--paper) !important; }
 .scope-caption { display: block; padding: 15px; font: .68rem/1.5 var(--mono); text-decoration: none; border-top: 1px solid var(--line); }
