@@ -1,0 +1,66 @@
+---
+title: "From histograms to tiles"
+description: "We turn expert counts into three projection shapes, padded arithmetic, and explicit scheduling estimates."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-08-12
+number: 4
+readingTime: "4 min read"
+tags: [compiler, grouped GEMM, retrospective]
+---
+
+The histogram becomes useful to a kernel engineer when every count has a matrix
+interpretation. If expert E receives M tokens, a gate or up projection multiplies
+an `[M, H]` activation matrix by an `[H, F]` weight matrix. The down projection
+multiplies `[M, F]` by `[F, H]`.
+
+Our compiler represents the gate, up, and down projections separately. It does
+not count activation functions, routing, memory transfers, or scatter operations
+as GEMM arithmetic.
+
+## A small calculation we can check
+
+Take our routed histogram `[2, 2, 3, 1]` and two shared experts receiving four
+tokens each. Set H to 3 and F to 5. Across all six experts, M sums to 16.
+Three matrix multiplications require:
+
+```text
+useful GEMM FLOPs = 3 × 2 × 16 × 3 × 5 = 1440
+```
+
+With a tile of M=2, N=4, K=2, padded M sums to 18. Gate and up pad N to 8 and K
+to 4; down pads N to 4 and K to 6. The padded arithmetic model becomes:
+
+```text
+gate + up = 2 × (2 × 18 × 8 × 4) = 2304
+down      =     2 × 18 × 4 × 6  =  864
+total                            = 3168
+```
+
+That difference is analytical padding, not a measured instruction count. Masked
+kernels avoid invalid reads and writes, but a partial tile can still consume
+matrix arithmetic capacity.
+
+## Tiles and waves need assumptions
+
+An output tile count is `ceil(M / BM) × ceil(N / BN)`. K controls the reduction
+iterations rather than multiplying the number of output CTAs. Confusing those
+two dimensions would inflate our scheduling estimate.
+
+For this example, the projections contain 18, 18, and 9 output tiles.
+With capacity for two CTAs at once, our simple model gives 9, 9, and 5 waves.
+Each projection is a separate launch; we cannot combine their remainders into
+one shared wave calculation.
+
+The persistent Triton implementation uses a fixed worker pool to visit those
+tiles. Hardware occupancy also depends on registers, shared memory, scheduling,
+and the actual compiled kernel. Our wave estimate does not model those effects.
+
+## What changed
+
+The compiler now emits explicit expert groups and dispatch rows, dimensions,
+tile counts, padded FLOPs, configuration, assumptions, and a hash of its source
+trace. Inactive experts have zero tiles and empty dispatch lists.
+
+We also implement the calculation in the browser and compare its output against
+Python-generated fixtures. Move the tile controls in the [lab](/lab/) to see why
+the same routing event can imply different amounts of padded work.

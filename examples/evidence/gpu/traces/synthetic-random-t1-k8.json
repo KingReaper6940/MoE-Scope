@@ -1,0 +1,42 @@
+{
+  "layer_index": 0,
+  "model_name": "moescope-synthetic-random",
+  "model_revision": "generator-v1-seed-20260912",
+  "num_routed_experts": 64,
+  "num_shared_experts": 0,
+  "phase": "prefill",
+  "routed_experts_per_token": 8,
+  "routing_rule": {
+    "score_function": "softmax",
+    "selection_method": "top_k",
+    "weight_normalization": "sum_to_one"
+  },
+  "schema_version": "1.0.0",
+  "step_index": 0,
+  "tokens": [
+    {
+      "expert_ids": [
+        5,
+        20,
+        17,
+        57,
+        44,
+        35,
+        21,
+        8
+      ],
+      "token_index": 0,
+      "weights": [
+        0.1305072992416068,
+        0.12999097137135732,
+        0.1299429611622191,
+        0.12882203363973216,
+        0.1227557391554479,
+        0.12160932306199777,
+        0.1201873288822554,
+        0.1161843434853836
+      ]
+    }
+  ],
+  "trace_kind": "synthetic"
+}

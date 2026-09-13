@@ -1,0 +1,62 @@
+---
+title: "A trace is a contract"
+description: "The boundary between a model decision, a compiled workload, and a measurement is the foundation of our experiment."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-07-29
+number: 2
+readingTime: "3 min read"
+tags: [schema, provenance, retrospective]
+---
+
+Our first fixture answers a deliberately small question: can we describe the
+experts selected for four tokens without bringing a model framework into the
+reader's environment? The answer is useful only if we preserve exactly what
+the description means.
+
+## Three artifacts with three jobs
+
+A routing trace records IDs, weights, layer, step, and routing semantics. A
+compiled workload adds matrix dimensions and a tile configuration. A result
+bundle adds timings and the machine that produced them. We keep these objects
+separate so that changing the GPU cannot change the recorded model decision.
+
+This separation also keeps an attractive number from becoming an undocumented
+input. The parser rejects unknown fields. Adding `latency_ms` to a trace fails
+validation instead of silently turning the trace into a partial benchmark.
+
+## What the schema checks
+
+Every token selects the declared number of unique, in-range expert IDs. Its
+weights must be finite and nonnegative. Token positions must be unique. We
+reject unsupported versions, missing fields, duplicate JSON keys, and booleans
+where integers are required. The last detail matters because Python normally
+treats a boolean as an integer.
+
+Normalization is a named rule rather than an assumption. A route marked
+`sum_to_one` must satisfy that invariant. A real model that normalizes in
+float32 and then casts to bfloat16 needs a distinct label: the cast can change
+the sum slightly. Validation should preserve the operation the model performed.
+
+## Shared experts are a separate count
+
+Our original fixture contains four tokens, top-2 routing, and two shared experts.
+That gives eight routed assignments and eight shared assignments. We never add
+shared expert IDs to the top-k list. They execute by architecture, not by selection.
+
+The compiler later makes an explicit simplifying assumption: shared experts have
+the same dimensions as routed experts and their outputs are summed with weight
+one. That is our replay contract, not a claim about every MoE architecture.
+
+## What changed, and what remains open
+
+We now have a dependency-free format that can be read, checked, and hashed on a
+laptop. The synthetic fixture remains a test input, not evidence of a model run.
+Large-scale capture still needs prompt provenance and environment information;
+those belong in the capture manifest beside the normalized events.
+
+```bash
+python -m moescope validate examples/traces/four-token-top2.json
+python -m moescope summarize examples/traces/four-token-top2.json
+```
+
+The next chapter connects supplied router scores to this exact contract.

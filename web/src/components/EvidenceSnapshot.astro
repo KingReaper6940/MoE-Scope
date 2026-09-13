@@ -1,0 +1,10 @@
+---
+import { sitePath } from "../lib/links";
+import raw from "../data/results.json";
+import summary from "../data/summary.json";
+import type { Report } from "../lib/evidence";
+const report = raw as unknown as Report | null;
+---
+<aside class="retrospective-note">
+  {report ? <p>Current artifact record: {summary.event_count} captured routing events and {report.cases.length} measured GPU workloads on {report.environment.gpu}. The measurement bundle was created {new Date(report.created_at).toISOString()}. <a href={sitePath("/results/")}>Inspect the measurements and limitations →</a></p> : <p>Hardware evidence is pending in this checkout. The scripts and synthetic tests exist; we have not substituted simulated values for measured results. <a href={sitePath("/results/")}>Current evidence status →</a></p>}
+</aside>

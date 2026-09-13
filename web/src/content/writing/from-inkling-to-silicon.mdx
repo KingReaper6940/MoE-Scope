@@ -1,0 +1,204 @@
+---
+title: "What one routing trace taught us"
+description: "Our first daily note: how a token becomes expert work, why shared experts matter, and what we built before touching a GPU."
+publishedAt: 2026-07-23
+number: 1
+readingTime: "10 min read"
+tags:
+  - routing
+  - GPU systems
+  - checkpoint 01
+draft: false
+---
+
+import InklingRoute from "../../components/InklingRoute.astro";
+import GoldenTrace from "../../components/GoldenTrace.astro";
+import RouterPlayground from "../../components/RouterPlayground.astro";
+import StackMap from "../../components/StackMap.astro";
+
+Today we gave MoEscope a more precise job. We are not trying to build another
+dashboard that reports a kernel time without explaining where the work came
+from. We are building a chain of evidence from a model’s routing decision to a
+GPU measurement we can defend.
+
+That means our first task is smaller than a fast kernel and more important than
+one: we need a routing trace we can understand by hand.
+
+## The question we are trying to answer
+
+In a dense model, every token passes through the same feed-forward path. In a
+Mixture-of-Experts model, a router scores a larger pool of experts and sends
+each token to only a few of them.
+
+At the model level, the decision can be summarized in one line:
+
+> This token goes to these experts with these weights.
+
+The GPU never executes that sentence. It receives tensors, grouped matrix
+multiplications, tiles, memory operations, and a launch schedule. MoEscope is
+our attempt to explain every transformation between those two views.
+
+[Inkling](https://thinkingmachines.ai/news/introducing-inkling/) gave us a useful
+large-scale example. Its published architecture describes 256 routed experts,
+six selected experts per token, and two shared experts that run for every
+token. We are not running Inkling, and an “Inkling-shaped” synthetic workload
+is not Inkling telemetry. The architecture is still helpful because it makes
+the distinction we care about impossible to ignore.
+
+<InklingRoute />
+
+## Lesson one: a routing decision is not the whole workload
+
+The router selects six experts, but eight experts execute for each token in
+this example. The two shared experts add work even though their IDs never
+appear in the router’s top-k result.
+
+We therefore need to keep two quantities separate:
+
+```text
+routed expert calls = tokens × selected experts per token
+shared expert calls = tokens × shared experts
+total expert calls  = routed calls + shared calls
+```
+
+If we record shared experts as though the router selected them, we change the
+meaning of the model decision. If we omit them, we undercount the work. Our
+trace format has to represent both without confusing them.
+
+The number of calls is only half the story. Two batches can produce the same
+number of expert calls while distributing them very differently. A balanced
+router gives many experts a small amount of work. A skewed router gives a few
+experts much larger groups. Those shapes affect padding, tiling, scheduling,
+and eventually latency.
+
+<RouterPlayground />
+
+This is why a single utilization percentage will not be enough. We need the
+assignment histogram that produced the workload.
+
+## Lesson two: the software layers have different jobs
+
+We also untangled five names that often appear together: PyTorch, Triton,
+CUDA, the NVIDIA GPU, and Modal. They are connected, but they are not
+interchangeable.
+
+<StackMap />
+
+| Layer | Its role in our project |
+|---|---|
+| PyTorch | Expresses the model logic and gives us a correctness reference |
+| Triton | Lets us write and experiment with custom grouped GPU kernels |
+| CUDA | Provides the NVIDIA execution platform underneath that GPU work |
+| NVIDIA GPU | Physically executes the compiled parallel program |
+| Modal | Gives us a reproducible rented machine with the GPU we request |
+
+The order matters. We can design the trace contract and test routing logic on a
+laptop. We need a GPU when we start replaying and measuring compiled workloads.
+Keeping those phases separate lets us learn without paying for hardware while
+the input is still ambiguous.
+
+## Lesson three: the trace contract comes before the kernel
+
+Our first instinct could have been to start with Triton. We now have a better
+sequence:
+
+```text
+model state
+  router scores, selected IDs, routing weights, shared-expert rules
+      ↓
+normalized trace
+  portable facts about what the model decided
+      ↓
+compiled workload
+  expert counts, matrix shapes, tiles, padding, possible waves
+      ↓
+benchmark result
+  correctness, latency, environment, profiler evidence
+```
+
+Each artifact answers a different question. The trace records the decision.
+The compiled workload describes what that decision becomes. The benchmark
+records what happened on one environment. Keeping them separate allows us to
+replay the same trace on a different GPU without rewriting history.
+
+## What we built today
+
+We implemented a first routing-trace contract around a synthetic fixture small
+enough to verify without a framework:
+
+```text
+T0 → E0, E2
+T1 → E1, E2
+T2 → E2, E0
+T3 → E3, E1
+```
+
+Flattening the routed expert IDs gives eight assignments:
+
+```text
+[0, 2, 1, 2, 2, 0, 3, 1]
+```
+
+From those assignments we derive a routed histogram of `[2, 2, 3, 1]`. With
+four tokens, top-2 routing, and two shared experts, the receipt is:
+
+```text
+routed calls        4 × 2 = 8
+shared calls        4 × 2 = 8
+total expert calls          16
+```
+
+<GoldenTrace />
+
+The visual above reads the same JSON fixture as our tests. It is not a second
+hand-written explanation of the expected result. The matrix, histogram, and
+receipt all come from the artifact we intend to trust.
+
+### What our validation protects
+
+The schema now checks the parts that would make a trace impossible to audit:
+
+- every token must have the declared number of expert IDs and weights;
+- expert IDs must be in range and cannot repeat within one token;
+- routing weights must be finite;
+- the schema version and trace kind must be explicit;
+- unknown fields are rejected instead of being silently accepted;
+- canonical serialization gives the same trace the same bytes.
+
+Rejecting unknown fields is especially useful. A value such as `latency_ms`
+cannot quietly slip into an input trace. Latency belongs to a later benchmark
+artifact with its own environment and provenance.
+
+## What we still do not know
+
+Checkpoint 01 proves that we can represent and summarize a routing event. It
+does not yet prove that a real model produces the trace correctly, that our
+workload compiler preserves the decision, or that a custom kernel is fast.
+
+We still need to answer:
+
+1. Can PyTorch reproduce this framework-neutral fixture from router scores?
+2. Can we capture the same fields from a small open MoE model?
+3. How should expert counts become grouped matrix shapes and padded tiles?
+4. Which workload features best predict measured GPU behavior?
+
+Those are now separate questions with an order we can test.
+
+## What we will do next
+
+Our next checkpoint will start with the original four score rows, calculate
+top-k assignments in PyTorch, and prove that the result matches this exact
+fixture. Only after that bridge is trustworthy will we introduce a real model
+hook.
+
+The most useful outcome from today is not a speed number. It is a clean boundary:
+we now know what a routing decision must contain before we ask the GPU to
+explain the work.
+
+## References
+
+- Thinking Machines Lab, [“Inkling: Our Open-Weights Model”](https://thinkingmachines.ai/news/introducing-inkling/).
+- NVIDIA, [CUDA Programming Guide](https://docs.nvidia.com/cuda/cuda-programming-guide/).
+- Triton, [official documentation](https://triton-lang.org/main/index.html).
+- PyTorch, [CUDA semantics](https://docs.pytorch.org/docs/main/notes/cuda.html).
+- Modal, [GPU acceleration documentation](https://modal.com/docs/guide/gpu).

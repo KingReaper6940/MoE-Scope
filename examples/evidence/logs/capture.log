@@ -1,0 +1,11 @@
+Loading allenai/OLMoE-1B-7B-0924@6d84c48581ece794365f2b8e9cfb043c68ade9c5
+`torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Fetching 3 files:  33%|███▎      | 1/3 [01:46<03:32, 106.07s/it]Fetching 3 files:  67%|██████▋   | 2/3 [01:48<00:54, 54.20s/it] Fetching 3 files: 100%|██████████| 3/3 [01:48<00:00, 36.19s/it]Fetching 3 files: 100%|██████████| 3/3 [01:48<00:00, 36.19s/it]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:01<00:03,  1.57s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:03<00:01,  1.54s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:04<00:00,  1.45s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:04<00:00,  1.48s/it]
+Captured systems: 29 prefill tokens + 4 decode steps
+Captured code: 33 prefill tokens + 4 decode steps
+Captured math: 25 prefill tokens + 4 decode steps
+Captured science: 29 prefill tokens + 4 decode steps
+Captured narrative: 28 prefill tokens + 4 decode steps
+Captured long_systems: 256 prefill tokens + 4 decode steps
+Saved 480 verified routing events

@@ -1,0 +1,125 @@
+---
+import { sitePath } from "../lib/links";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import traces from "../data/traces.json";
+---
+<BaseLayout title="Trace explorer — MoEscope" description="Follow token assignments into expert histograms, matrix shapes, and analytical tile counts.">
+  <section class="lab-shell">
+    <header class="page-heading">
+      <p class="eyebrow">01 / Interactive laboratory</p>
+      <h1>One trace.<br /><em>Every transformation.</em></h1>
+      <p>Choose a routing event. Inspect its assignments, then change the tile geometry to see what work we compile.</p>
+    </header>
+    <div class="lab-toolbar">
+      <label>Routing event<select id="trace-select">{traces.map(t => <option value={t.id}>{t.label}</option>)}</select></label>
+      <button id="download-trace" type="button">Download trace ↓</button>
+    </div>
+    <p class="evidence-banner" id="trace-provenance"></p>
+    <div class="metric-strip" aria-live="polite" id="routing-metrics"></div>
+    <section class="lab-panel">
+      <div class="panel-heading"><h2>Where the tokens go</h2><span>Routed expert histogram</span></div>
+      <div id="histogram" class="load-chart" role="img" aria-label="Expert assignment counts"></div>
+      <p class="panel-note">Bar height counts assignments. Shared experts run for every token and appear separately in the workload table.</p>
+    </section>
+    <div class="lab-split">
+      <section class="lab-panel">
+        <div class="panel-heading"><h2>Follow a token</h2><span>Actual IDs and weights</span></div>
+        <label class="token-picker">Token row <input id="token-row" type="range" min="0" max="3" value="0" /><output id="token-label"></output></label>
+        <div id="token-routes" class="token-routes" aria-live="polite"></div>
+        <p class="panel-note">Weights follow the source routing rule. They are not inferred from the histogram.</p>
+      </section>
+      <section class="lab-panel">
+        <div class="panel-heading"><h2>Choose tile geometry</h2><span>Analytical model</span></div>
+        <div class="geometry-controls">
+          <label>M tile<select id="block-m"><option>16</option><option selected>32</option><option>64</option><option>128</option></select></label>
+          <label>N tile<select id="block-n"><option>32</option><option selected>64</option><option>128</option></select></label>
+          <label>K tile<select id="block-k"><option selected>32</option><option>64</option></select></label>
+          <label>SM count<input id="num-sms" type="number" min="1" max="256" value="108" /></label>
+        </div>
+        <p class="panel-note" id="model-dimensions"></p>
+      </section>
+    </div>
+    <section class="lab-panel">
+      <div class="panel-heading"><h2>What the assignments become</h2><span>Three separate SwiGLU projections</span></div>
+      <div class="metric-strip" id="work-metrics" aria-live="polite"></div>
+      <p class="panel-note">Waves assume one CTA per output tile and one resident CTA per SM. These are scheduling estimates, not occupancy measurements or predicted latency. The persistent Triton kernel visits these tiles with a fixed worker pool.</p>
+      <div class="table-scroll"><table class="data-table"><caption>Per-expert gate/up and down matrix dimensions</caption><thead><tr><th>Expert</th><th>Tokens (M)</th><th>Gate / up [M,N,K]</th><th>Down [M,N,K]</th><th>All tiles</th></tr></thead><tbody id="work-rows"></tbody></table></div>
+    </section>
+    <a class="text-link" href={sitePath("/results/")}>Compare with measured GPU results →</a>
+    <noscript><p>This explorer requires JavaScript. The <a href={sitePath("/results/")}>results page</a> and journal remain readable without it.</p></noscript>
+  </section>
+</BaseLayout>
+<script>
+  import { sitePath } from "../lib/links";
+  import traces from "../data/trace-index.json";
+  import summary from "../data/summary.json";
+  import { compile, type Trace } from "../lib/workload";
+  const $ = (id: string) => document.getElementById(id)!;
+  const select = $("trace-select") as HTMLSelectElement;
+  const tokenInput = $("token-row") as HTMLInputElement;
+  const requested = new URLSearchParams(location.search).get("trace");
+  if (requested && traces.some(t => t.id === requested)) select.value = requested;
+  const format = (n: number) => new Intl.NumberFormat("en").format(n);
+  function metric(value: string, label: string) {
+    const div = document.createElement("div"), b = document.createElement("b"), span = document.createElement("span");
+    b.textContent = value; span.textContent = label; div.append(b, span); return div;
+  }
+  const cache = new Map<string, Trace>();
+  async function draw() {
+    const entry = traces.find(t => t.id === select.value)!;
+    let trace = cache.get(entry.id);
+    if (!trace) {
+      $("trace-provenance").textContent = "Loading trace…";
+      try {
+        const response = await fetch(sitePath(`/data/traces/${encodeURIComponent(entry.id)}.json`));
+        if (!response.ok) throw new Error("Trace download failed");
+        trace = await response.json() as Trace;
+        cache.set(entry.id, trace);
+      } catch {
+        $("trace-provenance").textContent = "We could not load this trace. Select another event or reload to retry.";
+        return;
+      }
+      if (entry.id !== select.value) return;
+    }
+    const capture = summary.capture as null | { hidden_size: number; intermediate_size: number };
+    const dimensions = entry as typeof entry & { hidden_size?: number; intermediate_size?: number };
+    const h = dimensions.hidden_size ?? (trace.trace_kind === "captured" && capture ? capture.hidden_size : 64);
+    const f = dimensions.intermediate_size ?? (trace.trace_kind === "captured" && capture ? capture.intermediate_size : 128);
+    const config = { hidden_size: h, intermediate_size: f,
+      block_m: Number(($("block-m") as HTMLSelectElement).value),
+      block_n: Number(($("block-n") as HTMLSelectElement).value),
+      block_k: Number(($("block-k") as HTMLSelectElement).value),
+      num_sms: Math.max(1, Math.min(256, Math.round(Number(($("num-sms") as HTMLInputElement).value)) || 108)), ctas_per_sm: 1 };
+    const work = compile(trace, config);
+    $("trace-provenance").textContent = `${trace.trace_kind === "captured" ? "MODEL CAPTURE" : "SYNTHETIC FIXTURE"} · ${trace.model_name} · revision ${trace.model_revision}`;
+    $("routing-metrics").replaceChildren(metric(format(trace.tokens.length), "tokens"), metric(String(trace.routed_experts_per_token), "selected / token"), metric(String(work.histogram.filter(n => n > 0).length), "active routed experts"), metric(String(trace.num_shared_experts), "shared experts"));
+    const maximum = Math.max(...work.histogram, 1);
+    $("histogram").replaceChildren(...work.histogram.map((count, e) => {
+      const bar = document.createElement("div"); bar.className = "load-bar";
+      bar.style.setProperty("--load", `${Math.max(count / maximum * 100, 1)}%`);
+      bar.title = `Expert ${e}: ${count} assignments`; bar.setAttribute("aria-label", bar.title);
+      const label = document.createElement("span"); label.textContent = String(count); bar.append(label); return bar;
+    }));
+    $("histogram").setAttribute("aria-label", work.histogram.map((n, e) => `E${e}: ${n}`).join(", "));
+    tokenInput.max = String(trace.tokens.length - 1);
+    tokenInput.value = String(Math.min(Number(tokenInput.value), trace.tokens.length - 1));
+    const token = trace.tokens[Number(tokenInput.value)];
+    $("token-label").textContent = `T${token.token_index}`;
+    $("token-routes").replaceChildren(...token.expert_ids.map((e, i) => metric(`E${e}`, token.weights[i].toFixed(5))));
+    $("model-dimensions").textContent = `Hidden size ${h} · intermediate size ${f}. Shared experts use these same dimensions in our analytical model.`;
+    $("work-metrics").replaceChildren(metric(format(work.tiles), "output tiles"), metric(format(work.waves), "estimated waves"), metric(`${(work.padding * 100).toFixed(1)}%`, "padded FLOP fraction"), metric(format(work.useful), "useful GEMM FLOPs"));
+    $("work-rows").replaceChildren(...work.groups.map((group, i) => {
+      const tr = document.createElement("tr");
+      const values = [`${group.kind === "shared" ? "Shared S" : "Routed E"}${group.expert}`, group.m, `[${group.m}, ${f}, ${h}]`, `[${group.m}, ${h}, ${f}]`, work.projections.reduce((sum, p) => sum + p.gemms[i].tiles, 0)];
+      for (const value of values) { const td = document.createElement("td"); td.textContent = String(value); tr.append(td); }
+      return tr;
+    }));
+  }
+  select.addEventListener("change", () => { tokenInput.value = "0"; draw(); });
+  for (const id of ["token-row", "block-m", "block-n", "block-k", "num-sms"]) $(id).addEventListener("input", draw);
+  $("download-trace").addEventListener("click", () => {
+    const entry = traces.find(t => t.id === select.value)!;
+    const a = document.createElement("a"); a.href = sitePath(`/data/traces/${encodeURIComponent(entry.id)}.json`); a.download = `${entry.id}.json`; a.click();
+  });
+  draw();
+</script>

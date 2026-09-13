@@ -1,0 +1,60 @@
+---
+title: "Benchmarking with a boundary"
+description: "What exactly is inside the timer, why we use CUDA graphs, and how we preserve every sample."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-09-05
+number: 8
+readingTime: "4 min read"
+tags: [benchmarking, A100, retrospective]
+---
+
+import EvidenceSnapshot from "../../components/EvidenceSnapshot.astro";
+
+A latency number becomes meaningful only after we say what started and stopped
+the clock. Our GPU experiment times one prepared group of gate/up-shaped matrix
+multiplications. It does not time the whole MoE layer or full model inference.
+
+## A controlled workload matrix
+
+The synthetic sweep uses 64 experts; token counts of 1, 8, 32, 128, 512, and
+2048; top-k of 2, 4, and 8; and balanced, random, and concentrated routing.
+That produces 54 controlled cases at hidden size 256 and intermediate size 512.
+
+The model-derived cases use layers 0, 7, and 15 from each prompt's prefill and
+first decode event. These preserve the captured histograms and model dimensions.
+The matrices contain seeded random values. We describe them as captured-routing
+workload replays, not executions of the model's original activations and weights.
+
+## Remove Python launch gaps from the timed sequence
+
+We first run correctness checks and warmups. We then capture ten invocations in
+a CUDA graph. CUDA events measure replay of that graph; dividing by ten gives
+the per-invocation time. Each backend receives thirty samples, and backend order
+rotates across cases.
+
+Pointer-table creation, tensor allocation, JIT compilation, and data generation
+are outside the timed region for every backend. This choice isolates prepared
+device work, but it also means our result cannot estimate the cost of dynamic
+dispatch in a serving engine. CUDA-graph reuse is itself an assumption.
+
+## Preserve variability and the environment
+
+The result JSON retains every sample along with the median, p95, minimum,
+maximum, and standard deviation. It names the GPU, SM count, CUDA, PyTorch,
+Triton, container image, source hash, input seed, and trace hashes.
+
+We do not lock GPU clocks or claim an isolated production environment. The run
+uses a rented A100. Repeating the experiment in a different session is the next
+step before treating small timing differences as stable effects.
+
+<EvidenceSnapshot />
+
+## A ratio with a narrow interpretation
+
+The results page reports PyTorch median divided by the fastest tested Triton
+median. A value below one means the PyTorch loop was faster. Choosing the best
+configuration on these same cases makes the ratio an in-sample comparison.
+
+We keep all cases visible, including losses. The useful question is where each
+implementation works well and why, rather than which single number would look
+best in a project description.

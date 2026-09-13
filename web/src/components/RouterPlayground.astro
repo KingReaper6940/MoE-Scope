@@ -1,0 +1,204 @@
+<figure class="wide-figure">
+  <div class="router-lab" data-router-lab>
+    <div class="router-lab-header">
+      <span class="router-lab-title">routing workload lab</span>
+      <span class="synthetic-label">synthetic · illustrative</span>
+    </div>
+
+    <div class="router-controls">
+      <div class="router-control">
+        <label for="router-tokens">
+          tokens
+          <output data-output="tokens">32</output>
+        </label>
+        <input
+          id="router-tokens"
+          data-input="tokens"
+          type="range"
+          min="8"
+          max="64"
+          step="8"
+          value="32"
+        />
+      </div>
+      <div class="router-control">
+        <label for="router-experts">routed experts</label>
+        <select id="router-experts" data-input="experts">
+          <option value="8">8 — toy</option>
+          <option value="256" selected>256 — Inkling-shaped</option>
+        </select>
+      </div>
+      <div class="router-control">
+        <label for="router-topk">selected / token</label>
+        <select id="router-topk" data-input="topk">
+          <option value="2">2</option>
+          <option value="6" selected>6</option>
+        </select>
+      </div>
+      <div class="router-control">
+        <label for="router-skew">
+          routing skew
+          <output data-output="skew">35%</output>
+        </label>
+        <input
+          id="router-skew"
+          data-input="skew"
+          type="range"
+          min="0"
+          max="90"
+          step="5"
+          value="35"
+        />
+      </div>
+    </div>
+
+    <div class="router-output">
+      <div class="router-chart-wrap">
+        <div
+          class="router-chart"
+          data-router-chart
+          role="img"
+          aria-label="Synthetic expert assignment histogram"
+        ></div>
+        <div class="router-axis">
+          <span data-chart-label>busiest 16 of 256 routed experts</span>
+          <span>assignments ↑</span>
+        </div>
+      </div>
+      <div class="router-stats">
+        <div class="router-stat">
+          <b data-stat="routed">192</b>
+          <span>routed expert calls</span>
+        </div>
+        <div class="router-stat">
+          <b data-stat="shared">64</b>
+          <span>shared expert calls</span>
+        </div>
+        <div class="router-stat">
+          <b data-stat="total">256</b>
+          <span>total expert calls</span>
+        </div>
+        <div class="router-stat">
+          <b data-stat="imbalance">—</b>
+          <span>max / mean routed load</span>
+        </div>
+      </div>
+    </div>
+    <div class="router-note">
+      This generates a deterministic toy distribution—not Inkling telemetry.
+      Shared experts add work even though they do not appear in the router’s
+      top-k selection.
+    </div>
+  </div>
+  <figcaption class="figure-caption">
+    Move the controls. The total work depends on tokens × selected experts, while
+    its shape depends on how assignments are distributed.
+  </figcaption>
+</figure>
+
+<script>
+  const fractional = (value: number) => value - Math.floor(value);
+
+  document.querySelectorAll<HTMLElement>("[data-router-lab]").forEach((root) => {
+    const tokensInput =
+      root.querySelector<HTMLInputElement>('[data-input="tokens"]');
+    const expertsInput =
+      root.querySelector<HTMLSelectElement>('[data-input="experts"]');
+    const topkInput =
+      root.querySelector<HTMLSelectElement>('[data-input="topk"]');
+    const skewInput =
+      root.querySelector<HTMLInputElement>('[data-input="skew"]');
+    const chart = root.querySelector<HTMLElement>("[data-router-chart]");
+    const chartLabel = root.querySelector<HTMLElement>("[data-chart-label]");
+
+    if (
+      !tokensInput ||
+      !expertsInput ||
+      !topkInput ||
+      !skewInput ||
+      !chart ||
+      !chartLabel
+    ) {
+      return;
+    }
+
+    const setText = (selector: string, value: string) => {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element) element.textContent = value;
+    };
+
+    const render = () => {
+      const tokens = Number(tokensInput.value);
+      const experts = Number(expertsInput.value);
+      const topk = Math.min(Number(topkInput.value), experts);
+      const skew = Number(skewInput.value);
+      const counts = Array.from({ length: experts }, () => 0);
+
+      for (let token = 0; token < tokens; token += 1) {
+        const scores = Array.from({ length: experts }, (_, expert) => {
+          const noise = fractional(
+            Math.sin((token + 1) * 12.9898 + (expert + 1) * 78.233) * 43758.5453,
+          );
+          const hotspot =
+            expert < Math.max(1, Math.floor(experts * 0.04))
+              ? skew / 32
+              : 0;
+          return { expert, score: noise + hotspot };
+        });
+
+        scores
+          .sort((a, b) => b.score - a.score)
+          .slice(0, topk)
+          .forEach(({ expert }) => {
+            counts[expert] += 1;
+          });
+      }
+
+      const ranked = counts
+        .map((count, expert) => ({ count, expert }))
+        .sort((a, b) => b.count - a.count || a.expert - b.expert);
+      const visible = ranked.slice(0, Math.min(16, experts));
+      const max = Math.max(...visible.map(({ count }) => count), 1);
+      const routedCalls = tokens * topk;
+      const sharedCalls = tokens * 2;
+      const mean = routedCalls / experts;
+      const imbalance = mean === 0 ? 0 : ranked[0].count / mean;
+
+      chart.replaceChildren(
+        ...visible.map(({ count, expert }) => {
+          const bar = document.createElement("i");
+          bar.className = "expert-bar";
+          bar.dataset.count = String(count);
+          bar.title = `expert ${expert}: ${count} assignments`;
+          bar.style.height = `${Math.max(2, (count / max) * 100)}%`;
+          return bar;
+        }),
+      );
+      chart.style.gridTemplateColumns = `repeat(${visible.length}, minmax(5px, 1fr))`;
+      chart.setAttribute(
+        "aria-label",
+        `Busiest ${visible.length} of ${experts} experts. Maximum load ${ranked[0].count}, mean load ${mean.toFixed(2)}.`,
+      );
+
+      setText('[data-output="tokens"]', String(tokens));
+      setText('[data-output="skew"]', `${skew}%`);
+      setText('[data-stat="routed"]', routedCalls.toLocaleString());
+      setText('[data-stat="shared"]', sharedCalls.toLocaleString());
+      setText(
+        '[data-stat="total"]',
+        (routedCalls + sharedCalls).toLocaleString(),
+      );
+      setText('[data-stat="imbalance"]', `${imbalance.toFixed(1)}×`);
+      chartLabel.textContent =
+        experts > 16
+          ? `busiest 16 of ${experts} routed experts`
+          : `all ${experts} routed experts`;
+    };
+
+    [tokensInput, expertsInput, topkInput, skewInput].forEach((control) => {
+      control.addEventListener("input", render);
+    });
+
+    render();
+  });
+</script>

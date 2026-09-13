@@ -1,0 +1,42 @@
+{
+  "layer_index": 8,
+  "model_name": "allenai/OLMoE-1B-7B-0924",
+  "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+  "num_routed_experts": 64,
+  "num_shared_experts": 0,
+  "phase": "decode",
+  "routed_experts_per_token": 8,
+  "routing_rule": {
+    "score_function": "softmax",
+    "selection_method": "top_k",
+    "weight_normalization": "not_normalized"
+  },
+  "schema_version": "1.0.0",
+  "step_index": 4,
+  "tokens": [
+    {
+      "expert_ids": [
+        2,
+        27,
+        59,
+        62,
+        33,
+        7,
+        26,
+        60
+      ],
+      "token_index": 259,
+      "weights": [
+        0.06689453125,
+        0.052490234375,
+        0.041015625,
+        0.034912109375,
+        0.034423828125,
+        0.03369140625,
+        0.028076171875,
+        0.0279541015625
+      ]
+    }
+  ],
+  "trace_kind": "captured"
+}

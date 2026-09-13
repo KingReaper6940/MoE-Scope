@@ -1,0 +1,61 @@
+---
+import { sitePath } from "../lib/links";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  publishedAt: Date;
+  updatedAt?: Date;
+  retrospectiveDate?: Date;
+  number: number;
+  readingTime: string;
+  tags: string[];
+}
+
+const {
+  title,
+  description,
+  publishedAt,
+  updatedAt,
+  retrospectiveDate,
+  number,
+  readingTime,
+  tags,
+} = Astro.props;
+
+const formatDate = (date: Date) => new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+}).format(date);
+
+const publishedDate = formatDate(publishedAt);
+const updatedDate = updatedAt ? formatDate(updatedAt) : undefined;
+---
+
+<BaseLayout title={`${title} — MoEscope`} description={description}>
+  <article class="article-shell">
+    <header class="article-header">
+      <a class="eyebrow article-back" href={sitePath("/#writing")}>← Project journal</a>
+      <div class="article-index" aria-hidden="true">
+        {String(number).padStart(3, "0")}
+      </div>
+      <h1>{title}</h1>
+      <p class="article-dek">{description}</p>
+      <div class="article-meta">
+        {retrospectiveDate && <span>Series date {formatDate(retrospectiveDate)}</span>}
+        <span>Published {publishedDate}</span>
+        {updatedDate && <span>Updated {updatedDate}</span>}
+        <span>{readingTime}</span>
+        <span>{tags.join(" · ")}</span>
+      </div>
+    </header>
+    <div class="article-body">
+      {retrospectiveDate && <aside class="retrospective-note">Retrospective chapter · We organized this series around a timeline ending September 10. We wrote this chapter on {publishedDate}; its series date does not represent when experiments ran. Measurement artifacts retain their actual timestamps.</aside>}
+      <slot />
+      <nav class="chapter-nav" aria-label="Journal navigation"><a href={sitePath("/#writing")}>All ten chapters ←</a><a href={sitePath("/lab/")}>Open the explorer →</a></nav>
+    </div>
+  </article>
+</BaseLayout>

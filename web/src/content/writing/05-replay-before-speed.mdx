@@ -1,0 +1,59 @@
+---
+title: "Replay before speed"
+description: "Two execution orders, one scalar oracle, and randomized checks for dispatch and weighted reconstruction."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-08-19
+number: 5
+readingTime: "3 min read"
+tags: [correctness, CPU replay, retrospective]
+---
+
+A workload compiler can produce plausible counts while sending the wrong token
+to an expert. We need an output-level check that exercises dispatch and weighted
+reconstruction. Our small CPU replay makes that check inexpensive to run.
+
+## Two orders of execution
+
+The token-major oracle visits each token, evaluates its selected experts,
+multiplies by routing weights, adds the shared experts, and sums the outputs.
+It does not read the compiler's dispatch table.
+
+The expert-major path reads the compiler's groups. It gathers the indicated
+token rows, evaluates each expert, and scatters weighted values into the output.
+This changes the order of accumulation, so comparison uses explicit absolute
+and relative tolerances rather than requiring identical bits.
+
+Both paths evaluate our three-projection SwiGLU contract: a SiLU-activated gate
+multiplied elementwise by the up projection, followed by the down projection.
+The CPU implementation uses Python binary64 values. It is a correctness tool,
+not an efficient inference implementation.
+
+## Tests that can expose a wrong implementation
+
+We vary token counts, expert counts, top-k, shared experts, hidden size, and
+intermediate size across seeded cases. Token IDs deliberately become sparse
+values such as 100, 103, and 106. A token's recorded position is not necessarily
+its row offset in the replay tensor.
+
+We also remove one expert's dispatch rows in a test and verify that the output
+comparison fails. That demonstrates that the comparison can detect the
+class of compiler bug we care about.
+
+A one-dimensional expert provides a hand-calculated arithmetic check. An
+optional CUDA test compares the Python oracle to an independent PyTorch tensor
+expression, including shared-expert contributions.
+
+## What CPU timing does and does not establish
+
+The CPU benchmark records raw samples, median, p95, spread, warmup count, seed,
+source hash, and environment. It alternates backend order to reduce systematic
+first-run bias. Input generation and compilation are outside the timed region;
+Python dispatch, arithmetic, output allocation, and scatter remain inside it.
+
+```bash
+python -m moescope benchmark examples/traces/four-token-top2.json --hidden-size 8 --intermediate-size 12 --repeats 10 --output cpu.json
+```
+
+Those numbers describe Python execution on one CPU. They cannot predict a
+Triton kernel's latency. What transfers to the GPU phase is the habit of checking
+outputs and naming the measurement boundary before timing anything.

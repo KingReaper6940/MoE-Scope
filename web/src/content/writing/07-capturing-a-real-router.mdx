@@ -1,0 +1,63 @@
+---
+title: "Capturing a real router"
+description: "A pinned OLMoE checkpoint, six authored prompts, and independent checks of expert input counts."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-09-01
+number: 7
+readingTime: "4 min read"
+tags: [OLMoE, model capture, retrospective]
+---
+
+import EvidenceSnapshot from "../../components/EvidenceSnapshot.astro";
+
+Synthetic distributions let us isolate a variable. They cannot tell us which
+histograms a learned router produces. For that, our capture path runs the
+pretrained [OLMoE-1B-7B-0924 checkpoint](https://huggingface.co/allenai/OLMoE-1B-7B-0924)
+and records the routing events from its MoE blocks.
+
+## Pin the model and the implementation
+
+The capture script resolves the requested model revision to a commit hash and
+uses that exact revision for both weights and tokenizer. It pins Transformers
+4.57.1 and follows that version's OLMoE routing rule: softmax in float32, top-k,
+optional normalization, and a cast to the hidden-state dtype.
+
+We store the resulting weights after the dtype cast. Recording float32 values
+while the block actually uses bfloat16 would quietly change the replay input.
+The trace therefore names normalization before the cast separately from exact
+sum-to-one normalization.
+
+## Observe the expert inputs as a cross-check
+
+Reconstructing top-k from captured logits is not, by itself, proof that we
+followed the model's execution. We attach pre-hooks to the expert modules and
+count how many input rows each receives. Every reconstructed histogram must
+match those observed counts.
+
+For the first MoE layer of each prefill prompt, we also recompute the learned
+expert block output with explicit gather, weighting, and accumulation. We
+compare that output with the model block's returned tensor. These checks verify
+the adapter boundary; they are distinct from the random-matrix GEMM benchmark.
+
+## A small corpus with visible limits
+
+Our six prompts cover systems, code, arithmetic, science, a narrative opening,
+and repeated systems text truncated to 256 tokens. We author the text ourselves
+and store it with its token IDs and hash. Each run records prefill and four
+greedy decode steps across every model layer.
+
+The repeated prompt helps expose a longer prefill shape, but it is not a
+representative long-context evaluation. Six prompts and batch size one cannot
+establish production routing statistics or expert specialization.
+
+<EvidenceSnapshot />
+
+## What we release
+
+The normalized events contain the routing facts. The manifest supplies model
+revision, dimensions, software, device, prompt provenance, and validation results.
+We retain actual capture timestamps. The series date on this retrospective
+chapter is not a substitute for those timestamps.
+
+The [explorer](/lab/) makes selected layers and phases inspectable. The full
+manifest remains available from the [evidence page](/results/).

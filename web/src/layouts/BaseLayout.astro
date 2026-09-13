@@ -1,0 +1,59 @@
+---
+import { sitePath } from "../lib/links";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "MoEscope — See how sparse routing becomes GPU work",
+  description = "An open systems lab for tracing Mixture-of-Experts routing from model decisions to GPU work.",
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#fbfaf6" />
+    <link rel="canonical" href={canonical} />
+    <title>{title}</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href={sitePath("/")} aria-label="MoEscope home">
+        <span>moe<em>scope</em></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href={sitePath("/lab/")}>Explorer</a>
+        <a href={sitePath("/results/")}>Evidence</a>
+        <a href={sitePath("/#writing")}>Journal</a>
+        <a href="https://github.com/KingReaper6940/MoE-Scope">GitHub ↗</a>
+      </nav>
+    </header>
+    <main id="content">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <p>MoEscope / an open systems field journal</p>
+      <div>
+        <a href="https://github.com/KingReaper6940/MoE-Scope">source ↗</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/KingReaper6940/MoE-Scope/blob/main/LICENSE">MIT</a>
+      </div>
+    </footer>
+  </body>
+</html>

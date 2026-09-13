@@ -1,0 +1,5 @@
+# PyTorch 2.8.0+cu128 and Triton 3.4.0 come from the pinned Runpod image.
+transformers==4.57.1
+accelerate==1.10.1
+huggingface-hub==0.35.3
+pytest==8.4.2

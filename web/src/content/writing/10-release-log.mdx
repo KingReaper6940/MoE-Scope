@@ -1,0 +1,82 @@
+---
+title: "Turning the lab into a project we can hand over"
+description: "The current release log: runnable tools, a trace explorer, an evidence page, and an explicit record of what remains open."
+publishedAt: 2026-09-12
+number: 10
+readingTime: "3 min read"
+tags: [release, reproducibility, project log]
+---
+
+import EvidenceSnapshot from "../../components/EvidenceSnapshot.astro";
+
+We started this session with a trace schema, one synthetic fixture, and the July
+journal entry. The goal was to make MoEscope a substantial project another
+engineer could run and question. That required working tools and inspectable
+artifacts, alongside the writing.
+
+## What we built
+
+The local package now generates synthetic routes, validates and summarizes
+traces, compiles expert matrix groups, and checks two CPU replay orders. Its
+command-line interface emits JSON artifacts that stay separate from the website.
+The browser compiler is checked against Python-generated examples.
+
+The GPU path adds a masked static Triton group kernel, a PyTorch baseline,
+irregular-shape correctness cases, a real OLMoE capture adapter, and a benchmark
+matrix. The adapter checks observed expert input counts and a learned block's
+output. The benchmark preserves random replay inputs as distinct from model data.
+
+The website now has a dedicated [explorer](/lab/) and [evidence page](/results/).
+We replaced the decorative home-page histogram with a view derived from a
+versioned artifact. Every result page has a route back to the underlying data.
+
+## What we learned while preparing the run
+
+Runpod's available-capacity listing did not guarantee allocation: the A40 and
+4090 requests failed. We successfully provisioned an enterprise A100-SXM4-40GB
+at the quoted hourly rate. Its host exposed an SSH proxy, and account key
+registration became a separate access requirement. We paused GPU billing while
+that approval was pending instead of leaving the GPU idle.
+
+We resolved access with authenticated Jupyter scoped to the pod, leaving the
+account-wide SSH key list unchanged. The GPU suite passed all 84 tests. Model
+download first failed because the image enabled a missing optional transfer
+accelerator; disabling that accelerator allowed the normal download to finish.
+
+The completed run yielded 480 verified routing events, 90 benchmark cases,
+360 case/backend correctness checks, 36 irregular-group checks, and 10,800
+timing samples. All six learned-block output checks had zero maximum absolute
+error. We downloaded the artifacts, verified all 570 capture and replay trace
+hashes, and terminated the pod. The Runpod account then listed no pods.
+
+<EvidenceSnapshot />
+
+## What we changed in the journal
+
+We kept the original July entry and organized eight retrospective chapters
+through September 10. Their actual publication date remains September 12.
+This entry records the current implementation work. We have not changed Git
+timestamps or assigned historical timestamps to newly measured data.
+
+The sequence explains the trace contract, synthetic controls, workload compiler,
+CPU reference, GPU kernel, model capture, benchmark protocol, and interpretation.
+It gives the project a coherent technical account without pretending the writing
+was published over weeks of activity that we cannot verify.
+
+## What remains open
+
+We prepared a move into a new repository, `MoE-Scope`, with its own GitHub Pages
+website. Our navigation, journal links, and downloadable evidence now respect
+the repository's URL prefix. The publishing workflow rebuilds from the raw
+artifacts and runs the release checks before deployment. Repository access and
+the first successful hosted deployment are tracked separately from local completion.
+
+The project is a research and inspection lab, not a production inference server.
+Future work includes Nsight hardware-counter analysis, repeated sessions,
+cross-GPU validation, representative prompt corpora, and end-to-end dispatch
+measurements. Any optimization beyond the static baseline should start with a
+specific question that the recorded evidence can answer.
+
+The release guide in the repository explains installation, verification, and
+reproduction. The evidence page reports the current hardware-artifact status;
+the existence of a script alone does not mark an experiment complete.

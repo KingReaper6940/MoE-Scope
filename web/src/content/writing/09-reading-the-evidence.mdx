@@ -1,0 +1,80 @@
+---
+title: "Reading the evidence without overreaching"
+description: "We connect routing shape, padding, launch structure, and measured latency while keeping cause and correlation separate."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-09-10
+number: 9
+readingTime: "3 min read"
+tags: [analysis, limitations, retrospective]
+---
+
+import EvidenceSnapshot from "../../components/EvidenceSnapshot.astro";
+
+The experiment asks a bounded question: does the routing histogram change the
+relative behavior of a loop of PyTorch matrix multiplications and a static
+persistent Triton group kernel on one A100?
+
+## Begin with the matched controls
+
+Our A100 run produced 43 Triton wins and 47 losses across 90 workloads when we
+selected the fastest of three tested configurations. The split by provenance is
+more revealing: 42 of 54 synthetic cases favored Triton, but only 1 of 36
+captured-routing cases did. Synthetic success did not transfer reliably to the
+model-shaped cases in this experiment.
+
+| 128-token/top-2 control | Active experts | PyTorch median | Best Triton median |
+| --- | ---: | ---: | ---: |
+| Balanced | 64 | 261.79 µs | 42.50 µs |
+| Random | 63 | 325.86 µs | 54.88 µs |
+| Concentrated | 2 | 10.30 µs | 12.13 µs |
+
+These controls use N=512 and K=256. The captured OLMoE projections instead use
+N=1024 and K=2048, so the provenance split also changes matrix dimensions. We
+cannot attribute that split to real versus synthetic routing alone.
+
+Use the 128-token, top-2 cases on the [results page](/results/). The assignment
+count is held fixed while the distribution changes. Balanced routing creates
+many small matrices; concentrated routing creates fewer larger ones. Differences
+in latency therefore come from the shape of the work and its execution, rather
+than a change in the number of routed assignments.
+
+That comparison still changes several linked properties: active expert count,
+individual M dimensions, tile padding, and the number of PyTorch launches. It
+does not isolate any one of them as the sole cause of a timing difference.
+
+## Use the profiler to inspect the execution structure
+
+The harness exports a PyTorch CPU/CUDA profile for a prepared balanced case.
+It places named regions around the PyTorch loop and Triton launch. The trace
+lets us inspect how those operations map to GPU activity without using its
+instrumented durations as our benchmark results.
+
+In the saved profile, the balanced case has 64 PyTorch matrix-multiplication
+kernel launches and one Triton grouped-kernel launch. That observation explains
+an execution-structure difference we can see directly. It does not, by itself,
+prove that launch overhead explains every latency difference.
+
+This is a useful first profile, not a substitute for hardware-counter analysis.
+Nsight Compute work remains necessary before making claims about bandwidth,
+tensor-core utilization, register pressure, or an occupancy bottleneck.
+
+## Configuration selection needs another experiment
+
+Our three tile configurations expose a small search space. If different cases
+prefer different settings, that can motivate a routing-aware selector. It does
+not validate such a selector. A credible follow-up would separate training and
+evaluation traces, include the selection overhead, and repeat the measurements
+on another hardware family.
+
+<EvidenceSnapshot />
+
+## What changed in our definition of success
+
+The useful artifact is the connected record: a model event, a workload, a
+correctness check, and a timing distribution. A negative performance result
+still teaches us something if that chain remains inspectable.
+
+For a résumé or interview, we can explain the system we built and reproduce
+the experiments it actually ran. We should scope any speed ratio to prepared
+grouped GEMM, the measured workload set, the A100, and this timing protocol.
+We should not convert it into a full-model inference claim.

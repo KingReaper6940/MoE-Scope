@@ -1,0 +1,399 @@
+---
+import traceFixture from "../../../examples/traces/four-token-top2.json";
+
+interface TraceToken {
+  token_index: number;
+  expert_ids: number[];
+  weights: number[];
+}
+
+interface RoutingTrace {
+  model_name: string;
+  num_routed_experts: number;
+  num_shared_experts: number;
+  routed_experts_per_token: number;
+  schema_version: string;
+  tokens: TraceToken[];
+  trace_kind: string;
+}
+
+const trace = traceFixture as RoutingTrace;
+
+const histogram = Array.from(
+  { length: trace.num_routed_experts },
+  () => 0,
+);
+
+for (const token of trace.tokens) {
+  for (const expertId of token.expert_ids) {
+    histogram[expertId] += 1;
+  }
+}
+
+const routedCalls = trace.tokens.length * trace.routed_experts_per_token;
+const sharedCalls = trace.tokens.length * trace.num_shared_experts;
+const maxLoad = Math.max(...histogram);
+---
+
+<figure class="wide-figure">
+  <div class="golden-trace">
+    <header class="trace-header">
+      <div>
+        <span class="trace-kicker">checkpoint 01 / canonical fixture</span>
+        <strong>{trace.model_name}</strong>
+      </div>
+      <span class="trace-status">verified</span>
+    </header>
+
+    <div class="trace-body">
+      <div class="route-matrix">
+        <div class="matrix-head" aria-hidden="true">
+          <span>token</span>
+          {
+            histogram.map((_, expertId) => (
+              <span>{`E${expertId}`}</span>
+            ))
+          }
+        </div>
+        {
+          trace.tokens.map((token) => (
+            <div class="matrix-row">
+              <b>{`T${token.token_index}`}</b>
+              {histogram.map((_, expertId) => {
+                const selectionIndex = token.expert_ids.indexOf(expertId);
+                const selected = selectionIndex !== -1;
+                return (
+                  <span
+                    class:list={["matrix-cell", { selected }]}
+                    aria-label={
+                      selected
+                        ? `Token ${token.token_index} routes to expert ${expertId} with weight ${token.weights[selectionIndex]}`
+                        : `Token ${token.token_index} does not route to expert ${expertId}`
+                    }
+                  >
+                    {selected ? token.weights[selectionIndex].toFixed(2) : "·"}
+                  </span>
+                );
+              })}
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="load-panel">
+        <span class="panel-label">derived routed load</span>
+        <div
+          class="load-chart"
+          role="img"
+          aria-label={`Expert assignment histogram: ${histogram.join(", ")}`}
+        >
+          {
+            histogram.map((load, expertId) => (
+              <div class="load-column">
+                <span>{load}</span>
+                <i style={`--load: ${(load / maxLoad) * 100}%`} />
+                <b>{`E${expertId}`}</b>
+              </div>
+            ))
+          }
+        </div>
+        <code>{`[${histogram.join(", ")}]`}</code>
+      </div>
+    </div>
+
+    <div class="trace-receipt">
+      <div>
+        <b>{routedCalls}</b>
+        <span>routed calls</span>
+      </div>
+      <div>
+        <b>{sharedCalls}</b>
+        <span>shared calls</span>
+      </div>
+      <div>
+        <b>{routedCalls + sharedCalls}</b>
+        <span>total expert calls</span>
+      </div>
+      <div>
+        <b>{trace.schema_version}</b>
+        <span>schema</span>
+      </div>
+    </div>
+
+    <footer class="trace-footer">
+      <span>{trace.trace_kind} · read from the repository at build time</span>
+      <a
+        href="https://github.com/KingReaper6940/MoE-Scope/blob/main/examples/traces/four-token-top2.json"
+      >
+        inspect JSON ↗
+      </a>
+    </footer>
+  </div>
+  <figcaption class="figure-caption">
+    The page derives this matrix, histogram, and receipt from the same golden
+    JSON fixture used by the tests.
+  </figcaption>
+</figure>
+
+<style>
+  .golden-trace {
+    border: 1px solid var(--paper);
+    background: var(--surface);
+    box-shadow: 6px 6px 0 var(--paper);
+  }
+
+  .trace-header,
+  .trace-footer {
+    min-height: 62px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .trace-header {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .trace-header > div {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+  }
+
+  .trace-kicker,
+  .trace-status,
+  .panel-label,
+  .trace-footer,
+  .trace-receipt span {
+    font: 600 0.61rem/1.4 var(--mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .trace-kicker,
+  .panel-label,
+  .trace-footer,
+  .trace-receipt span {
+    color: var(--faint);
+  }
+
+  .trace-header strong {
+    font: 600 0.82rem/1.2 var(--mono);
+  }
+
+  .trace-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--signal);
+  }
+
+  .trace-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    box-shadow: 0 0 0 3px rgb(17 17 17 / 10%);
+  }
+
+  .trace-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  }
+
+  .route-matrix {
+    padding: 26px 28px 30px;
+    border-right: 1px solid var(--line);
+  }
+
+  .matrix-head,
+  .matrix-row {
+    display: grid;
+    grid-template-columns: 62px repeat(4, minmax(54px, 1fr));
+    gap: 8px;
+  }
+
+  .matrix-head {
+    margin-bottom: 9px;
+  }
+
+  .matrix-head span,
+  .matrix-row b {
+    color: var(--faint);
+    font: 600 0.59rem/1 var(--mono);
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .matrix-head span:first-child,
+  .matrix-row b {
+    text-align: left;
+  }
+
+  .matrix-row {
+    margin-top: 8px;
+    align-items: center;
+  }
+
+  .matrix-cell {
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    color: var(--faint);
+    font: 500 0.66rem/1 var(--mono);
+  }
+
+  .matrix-cell.selected {
+    border-color: var(--signal);
+    background: rgb(17 17 17 / 8%);
+    color: var(--signal);
+  }
+
+  .load-panel {
+    padding: 26px 24px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .load-chart {
+    min-height: 192px;
+    margin-top: 23px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    align-items: end;
+  }
+
+  .load-column {
+    height: 168px;
+    display: grid;
+    grid-template-rows: 22px 1fr 22px;
+    gap: 6px;
+    align-items: end;
+  }
+
+  .load-column span,
+  .load-column b {
+    color: var(--faint);
+    font: 600 0.59rem/1 var(--mono);
+    text-align: center;
+  }
+
+  .load-column i {
+    width: 100%;
+    height: var(--load);
+    min-height: 4px;
+    display: block;
+    background: var(--signal);
+  }
+
+  .load-panel code {
+    margin-top: 18px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    background: var(--ink);
+    color: var(--signal);
+    font: 600 0.68rem/1 var(--mono);
+    text-align: center;
+  }
+
+  .trace-receipt {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .trace-receipt > div {
+    padding: 18px 20px;
+    border-right: 1px solid var(--line);
+  }
+
+  .trace-receipt > div:last-child {
+    border-right: 0;
+  }
+
+  .trace-receipt b,
+  .trace-receipt span {
+    display: block;
+  }
+
+  .trace-receipt b {
+    font: 600 1.15rem/1 var(--mono);
+  }
+
+  .trace-receipt span {
+    margin-top: 7px;
+  }
+
+  .trace-footer a {
+    color: var(--paper);
+    text-decoration-color: var(--line-strong);
+  }
+
+  @media (max-width: 800px) {
+    .trace-body {
+      grid-template-columns: 1fr;
+    }
+
+    .route-matrix {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .load-chart {
+      min-height: 150px;
+    }
+
+    .load-column {
+      height: 128px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .trace-header,
+    .trace-footer {
+      align-items: flex-start;
+      flex-direction: column;
+      justify-content: center;
+      padding-block: 16px;
+    }
+
+    .trace-header > div {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .route-matrix {
+      padding: 20px 14px 24px;
+    }
+
+    .matrix-head,
+    .matrix-row {
+      grid-template-columns: 38px repeat(4, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .matrix-cell {
+      min-height: 44px;
+      font-size: 0.57rem;
+    }
+
+    .trace-receipt {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .trace-receipt > div:nth-child(2) {
+      border-right: 0;
+    }
+
+    .trace-receipt > div:nth-child(-n + 2) {
+      border-bottom: 1px solid var(--line);
+    }
+  }
+</style>

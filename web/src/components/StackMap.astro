@@ -1,0 +1,156 @@
+<figure class="wide-figure">
+  <div class="stack-map" data-stack-map>
+    <div class="stack-list" role="tablist" aria-label="GPU software stack">
+      <button
+        class="stack-layer"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="stack-panel-pytorch"
+        data-stack-target="pytorch"
+      >
+        <span class="stack-step">01</span>
+        <span><span class="stack-dot"></span><b>PyTorch</b></span>
+        <span class="stack-kind">framework</span>
+      </button>
+      <button
+        class="stack-layer"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="stack-panel-triton"
+        data-stack-target="triton"
+      >
+        <span class="stack-step">02</span>
+        <span><span class="stack-dot"></span><b>Triton</b></span>
+        <span class="stack-kind">kernel DSL</span>
+      </button>
+      <button
+        class="stack-layer"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="stack-panel-cuda"
+        data-stack-target="cuda"
+      >
+        <span class="stack-step">03</span>
+        <span><span class="stack-dot"></span><b>CUDA</b></span>
+        <span class="stack-kind">platform</span>
+      </button>
+      <button
+        class="stack-layer"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="stack-panel-gpu"
+        data-stack-target="gpu"
+      >
+        <span class="stack-step">04</span>
+        <span><span class="stack-dot"></span><b>NVIDIA GPU</b></span>
+        <span class="stack-kind">hardware</span>
+      </button>
+      <button
+        class="stack-layer"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="stack-panel-modal"
+        data-stack-target="modal"
+      >
+        <span class="stack-step">05</span>
+        <span><span class="stack-dot"></span><b>Modal</b></span>
+        <span class="stack-kind">rented machine</span>
+      </button>
+    </div>
+
+    <div class="stack-panel">
+      <section id="stack-panel-pytorch" role="tabpanel" data-stack-panel="pytorch">
+        <h3>Express the math.</h3>
+        <p>
+          PyTorch gives us tensors, model layers, automatic differentiation, and
+          familiar operations such as <code>topk</code>. It is where we build
+          the correct reference before touching kernel code.
+        </p>
+        <code>expert_ids = torch.topk(router_scores, k=2).indices</code>
+      </section>
+      <section
+        id="stack-panel-triton"
+        role="tabpanel"
+        data-stack-panel="triton"
+        hidden
+      >
+        <h3>Shape the GPU work.</h3>
+        <p>
+          Triton is a Python-based language and compiler for custom GPU kernels.
+          We describe blocks of tensor work; its compiler lowers them toward the
+          NVIDIA execution stack.
+        </p>
+        <code>@triton.jit
+def grouped_gemm(...):
+    # one program handles a tile of expert work</code>
+      </section>
+      <section id="stack-panel-cuda" role="tabpanel" data-stack-panel="cuda" hidden>
+        <h3>Control NVIDIA compute.</h3>
+        <p>
+          CUDA is broader than a language. It is NVIDIA’s programming model,
+          runtime, compiler toolchain, libraries, and vocabulary for launching
+          parallel work and moving memory.
+        </p>
+        <code>host code → launch kernel → GPU threads → device memory</code>
+      </section>
+      <section id="stack-panel-gpu" role="tabpanel" data-stack-panel="gpu" hidden>
+        <h3>Execute many tiles in parallel.</h3>
+        <p>
+          The physical GPU contains streaming multiprocessors, compute units,
+          caches, and high-bandwidth memory. Kernel speed depends on how well the
+          requested work fits those resources.
+        </p>
+        <code>grouped GEMMs → tiles → thread blocks / CTAs → SMs</code>
+      </section>
+      <section
+        id="stack-panel-modal"
+        role="tabpanel"
+        data-stack-panel="modal"
+        hidden
+      >
+        <h3>Rent the environment.</h3>
+        <p>
+          Modal is not another GPU language. It starts a cloud container with a
+          chosen NVIDIA GPU, installs our dependencies, runs the experiment, and
+          charges for the compute time.
+        </p>
+        <code>@app.function(gpu="A100-40GB")
+def benchmark(): ...</code>
+      </section>
+    </div>
+  </div>
+  <figcaption class="figure-caption">
+    Click a layer. The stack is conceptual: Modal surrounds the machine rather
+    than sitting beneath the GPU.
+  </figcaption>
+</figure>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-stack-map]").forEach((root) => {
+    const buttons =
+      root.querySelectorAll<HTMLButtonElement>("[data-stack-target]");
+    const panels = root.querySelectorAll<HTMLElement>("[data-stack-panel]");
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.stackTarget;
+
+        buttons.forEach((candidate) => {
+          candidate.setAttribute(
+            "aria-selected",
+            String(candidate === button),
+          );
+        });
+
+        panels.forEach((panel) => {
+          panel.hidden = panel.dataset.stackPanel !== target;
+        });
+      });
+    });
+  });
+</script>

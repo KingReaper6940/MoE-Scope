@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "moescope"
+version = "0.1.0"
+description = "Trace how Mixture-of-Experts routing becomes GPU work."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Rishabh Sai" }]
+dependencies = []
+
+[project.scripts]
+moescope = "moescope.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0,<9",
+]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers", "-ra"]
+testpaths = ["tests"]

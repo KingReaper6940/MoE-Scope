@@ -1,0 +1,22 @@
+<figure class="wide-figure">
+  <div class="inkling-diagram" role="img" aria-label="One Inkling token is sent to six selected routed experts and two shared experts">
+    <div class="inkling-route">
+      <div class="inkling-token">one token</div>
+      <div class="expert-pool" aria-hidden="true">
+        {Array.from({ length: 32 }, () => <i></i>)}
+      </div>
+      <div class="shared-pool" aria-hidden="true">
+        <i>S1</i><i>S2</i>
+      </div>
+    </div>
+    <div class="inkling-labels" aria-hidden="true">
+      <span>router input</span>
+      <span>6 selected from 256 routed experts</span>
+      <span>2 shared experts always run</span>
+    </div>
+  </div>
+  <figcaption class="figure-caption">
+    Schematic, not to scale. The grid samples the routed pool rather than drawing
+    all 256 experts.
+  </figcaption>
+</figure>

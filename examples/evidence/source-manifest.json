@@ -1,0 +1,19 @@
+{
+  "src/moescope/replay.py": "d97473aa8beae649fec74156078ae049e398808c0b562881f14ffcc7539e4da8",
+  "src/moescope/routing.py": "0dd3dea6529746d50f77a81ad33843b9fa85aff13b24b57f14d6319ce32db146",
+  "src/moescope/triton_backend.py": "88a3f3c3b169797bff8aa637589c0c5a676002f812469ab026113744780cd889",
+  "src/moescope/workloads.py": "3d0818a6819e43513386487a173490ca3e2de5093efe02cd347fcb9f6f0c574e",
+  "src/moescope/__init__.py": "fb6e62797eb635dbfe4ed5305250111b29a84d711bc43dad716fd787786a318a",
+  "src/moescope/__main__.py": "2422b64ad014758e032b0b989dc7a16f46b8eb2aa5a38558e46b3aebb0ede4c5",
+  "src/moescope/trace/schema.py": "9ad5b7cb36e898849412d7c9390049b2fda758f0b5c912e29b6b942a5fc1bf1f",
+  "src/moescope/trace/summary.py": "157718090c5f4045bd727082385f928e559033bf5c42007033311bd743b3ee5e",
+  "src/moescope/trace/__init__.py": "15ec4068a3549c7d5b40ad8744a20e6c09e23977b39492c0be57067142cdfce4",
+  "experiments/gpu/benchmark.py": "399745810b8df0071d437488954bdaa2770faff550d2ed420ea949f1f19707c1",
+  "experiments/gpu/capture.py": "40bc5ca8d22dd8fa09e554d677a954c109c68fc19fd26051ffd80e828e0a7c97",
+  "experiments/gpu/requirements.txt": "d2ade1336bd20453073592c096f2450d0b69f3eac92cda1ae65d6e1852da7fd3",
+  "tests/test_gpu.py": "1ab68e6c19d764faa752dc0ea74b48f2b0d7d265fcd97a64f16a70f41f38bf55",
+  "tests/test_package.py": "addb1149024da463823ae5fd9ba6e9d69fa5a5de9d7089a2f8dcebf967bd0afc",
+  "tests/test_pipeline.py": "6e06d9e4172b5c79eb41fc544c608d587be528026a0bfa0ccf3552c964e4a1a6",
+  "tests/trace/test_golden_trace.py": "54deeb04b7c2cba8e36a06b01f7a1c897258bfbf88571ca8151c788c96a14ed8",
+  "tests/trace/test_schema.py": "ab02706830d716d05bcfb21b6e1a0ba25d37b8866ccb6d04be638708cf4d90a5"
+}

@@ -1,0 +1,56 @@
+---
+title: "A kernel that handles the edges"
+description: "Static grouped scheduling is only useful for routing workloads if partial tiles and inactive experts are correct."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-08-26
+number: 6
+readingTime: "3 min read"
+tags: [Triton, CUDA, retrospective]
+---
+
+import EvidenceSnapshot from "../../components/EvidenceSnapshot.astro";
+
+We use the static scheduling idea in the [official Triton grouped-GEMM tutorial](https://triton-lang.org/main/getting-started/tutorials/08-grouped-gemm.html)
+as our starting point. A fixed number of workers visits a collection of matrix
+tiles. Each worker advances by the pool size rather than launching a separate
+grid for every expert.
+
+Our contribution here is a small inspectable implementation and an evidence
+pipeline. We are not claiming to have invented grouped matrix multiplication
+or routing-aware kernel selection.
+
+## Expert counts rarely respect a tile boundary
+
+A routed expert can receive zero tokens, one token, or any other count. A kernel
+that assumes M is a multiple of 32 does not satisfy our workload contract.
+The implementation masks loads along M and K, masks weight loads along K and N,
+and masks output stores along M and N.
+
+An inactive expert contributes no tiles. The persistent loop skips it while
+preserving the offsets of the groups that follow. We test groups containing
+both an empty matrix and nonempty irregular matrices, because an isolated
+empty case would not reveal an incorrect transition to the next group.
+
+## Keep preparation outside the kernel comparison
+
+`PreparedGroup` owns the input and output tensors and the device pointer tables.
+It validates dtype, device, contiguity, and compatible dimensions before launch.
+The PyTorch baseline uses the same input matrices and preallocated outputs.
+
+We compare three fixed configurations with M tiles of 16, 32, and 64, keeping
+N=64 and K=32. This is a bounded parameter sweep. Selecting the fastest one
+after observing the measurements is an in-sample result, not a production
+selector that has learned to generalize.
+
+## Correctness precedes timing
+
+The GPU harness compares each result against float32 PyTorch multiplication
+cast to float16, with TF32 disabled. Twelve seeded collections of irregular
+matrix groups are checked under all three configurations. The tolerance and
+maximum absolute error are saved with the result.
+
+<EvidenceSnapshot />
+
+The open question is performance: how much does routing balance matter once
+the matrix values, hardware, and timing method are held fixed? The next chapters
+separate real model capture from the microbenchmark that investigates that question.

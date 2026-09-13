@@ -1,0 +1,56 @@
+---
+title: "Making routing reproducible"
+description: "Stable softmax, explicit tie handling, and synthetic controls that isolate routing balance."
+publishedAt: 2026-09-12
+retrospectiveDate: 2026-08-05
+number: 3
+readingTime: "3 min read"
+tags: [routing, synthetic controls, retrospective]
+---
+
+A hand-written trace is a good starting point. A deterministic generator lets us
+change one variable while keeping the others fixed. We implemented both a
+score-to-route function and a set of synthetic workload controls.
+
+## Reconstruct the first fixture
+
+For the first token, the precomputed score row is `[0.6, 0.1, 0.2, 0.1]`.
+Selecting its two largest values yields experts 0 and 2 with weights 0.6 and 0.2.
+Those weights are intentionally not renormalized. Applying the same operation
+to all four rows reproduces the checked-in fixture, including its canonical JSON.
+
+For logits, we subtract the row maximum before exponentiation. This makes
+rows such as `[10000, 10000, -10000]` safe to process. When two values tie exactly,
+our synthetic implementation prefers the lower expert ID. A real-model adapter
+must follow the framework's selection behavior rather than imposing that rule.
+
+## Three controlled distributions
+
+The balanced generator rotates selected expert IDs through the pool. The skewed
+generator repeatedly selects the same top-k experts. The random generator uses
+a seeded stream of score rows. All three expose token count, expert count,
+top-k, shared experts, and seed.
+
+For 128 tokens, 64 experts, and top-2, there are always 256 routed assignments.
+Balanced routing gives each expert four tokens. Concentrated routing gives two
+experts 128 tokens each and leaves the other 62 inactive. The total assignment
+count is identical; the matrix groups are very different.
+
+```bash
+python -m moescope generate --tokens 128 --experts 64 --top-k 2 --distribution skewed --seed 17 --output skewed.json
+python -m moescope summarize skewed.json
+```
+
+## What this control cannot tell us
+
+A seeded random router is not a learned router. These traces do not demonstrate
+specialization, language behavior, or the prevalence of skew in deployment.
+They isolate the effect of assignment geometry. Captured model traces are a
+separate input family, and the explorer labels the two families explicitly.
+
+We learned to test more than repeatability. The generator must conserve the
+number of assignments, select unique experts, preserve normalization, and reject
+ragged rows or nonfinite scores. Those invariants survive every distribution.
+
+The [explorer](/lab/) lets us inspect the resulting token weights and histograms.
+The next step is to compile those counts into actual matrix shapes.

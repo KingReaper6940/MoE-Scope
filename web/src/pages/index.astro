@@ -1,0 +1,188 @@
+---
+import { sitePath } from "../lib/links";
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import summary from "../data/summary.json";
+import traces from "../data/traces.json";
+const featured = traces.find(t => t.trace.trace_kind === "captured") ?? traces[0];
+const histogram = Array.from({length: featured.trace.num_routed_experts}, (_, e) => featured.trace.tokens.filter(t => t.expert_ids.includes(e)).length);
+const maxLoad = Math.max(...histogram);
+
+const posts = (await getCollection("writing", ({ data }) => !data.draft)).sort(
+  (a, b) => (a.data.retrospectiveDate ?? a.data.publishedAt).valueOf() - (b.data.retrospectiveDate ?? b.data.publishedAt).valueOf(),
+);
+
+const formatDate = (date: Date) => new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+}).format(date);
+---
+
+<BaseLayout>
+  <section class="home-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">MoEscope · an open GPU systems lab</p>
+      <h1>
+        We trace the route.
+        <span>We explain the work.</span>
+      </h1>
+      <p>
+        A sparse model chooses its experts. We follow that decision into matrix
+        shapes, GPU tiles, and measurements we can inspect. Open code, real
+        artifacts, and a journal of how the pieces fit together.
+      </p>
+      <div class="hero-links">
+        <a class="primary-link" href={sitePath("/lab/")}>Explore a routing trace ↗</a>
+        <a class="text-link" href={sitePath("/results/")}>Inspect the evidence</a>
+      </div>
+    </div>
+
+    <div class="hero-scope" aria-label="Expert routing histogram from a versioned trace">
+      <div class="scope-topline">
+        <span>Fig. 01 / {featured.trace.trace_kind} trace</span>
+        <span class="scope-live">Artifact linked</span>
+      </div>
+      <div class="scope-chart" aria-hidden="true">
+        {histogram.map((count, e) => <i style={`height:${Math.max(3, count/maxLoad*100)}%`} title={`E${e}: ${count} assignments`}></i>)}
+      </div>
+      <div class="scope-stats">
+        <div class="scope-stat"><b>{featured.trace.num_routed_experts}</b><span>routed experts</span></div>
+        <div class="scope-stat"><b>{featured.trace.routed_experts_per_token}</b><span>selected / token</span></div>
+        <div class="scope-stat"><b>{featured.trace.tokens.length}</b><span>tokens in this event</span></div>
+      </div>
+      <a class="scope-caption" href={sitePath(`/lab/?trace=${featured.id}`)}>{featured.label} · inspect this trace →</a>
+    </div>
+  </section>
+
+  <section class="release-strip" aria-label="Project artifacts">
+    <div><b>{summary.event_count || "Schema v1"}</b><span>{summary.event_count ? "real routing events" : "validated trace format"}</span></div>
+    <div><b>{summary.case_count || "CPU + CUDA"}</b><span>{summary.case_count ? "GPU benchmark cases" : "replay backends"}</span></div>
+    <div><b>{posts.length.toString().padStart(2, "0")}</b><span>journal chapters</span></div>
+    <div><b>Open source</b><span>Python · Triton · Astro</span></div>
+  </section>
+
+  <section class="home-section intro-section" id="purpose">
+    <div class="section-heading">
+      <span class="section-label">01 / The question</span>
+      <h2>What happens after a model decides where a token should go?</h2>
+    </div>
+
+    <div class="intro-grid">
+      <p class="intro-lede">
+        Sparse models make a small decision with large consequences: each token
+        is routed to only part of the model, and that choice becomes real work
+        on a GPU.
+      </p>
+      <div class="intro-copy">
+        <p>
+          At the model level, routing looks simple. A router scores experts,
+          selects a few, and assigns each selection a weight. At the systems
+          level, those choices become uneven groups of matrix multiplications,
+          memory movement, padding, scheduling, and measurable latency.
+        </p>
+        <p>
+          The connection between those two views is usually hidden inside a
+          stack of frameworks, compilers, kernels, and hardware. We want to
+          expose that connection without skipping the difficult middle.
+        </p>
+      </div>
+    </div>
+
+    <aside class="project-statement">
+      <span>Our aim</span>
+      <p>
+        Given one routing event, we should be able to explain what the model
+        decided, what work was compiled, what the GPU executed, and why the
+        measurement looks the way it does.
+      </p>
+    </aside>
+  </section>
+
+  <section class="home-section" id="about">
+    <div class="section-heading">
+      <span class="section-label">02 / The pipeline</span>
+      <h2>One verifiable path from model semantics to hardware evidence.</h2>
+    </div>
+    <div class="about-grid">
+      <article class="about-card">
+        <span class="number">01 / capture</span>
+        <h3>We trace the router</h3>
+        <p>
+          We record selected experts, routing weights, shared experts, model
+          provenance, layer, and generation step without mixing in results.
+        </p>
+      </article>
+      <article class="about-card">
+        <span class="number">02 / compile</span>
+        <h3>We describe the work</h3>
+        <p>
+          We turn assignments into expert histograms, grouped matrix shapes,
+          tile counts, padding, and theoretical execution waves.
+        </p>
+      </article>
+      <article class="about-card">
+        <span class="number">03 / measure</span>
+        <h3>We test the evidence</h3>
+        <p>
+          We compare prepared matrix groups against a PyTorch reference.
+          Raw timing samples preserve the environment and the scope of each result.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section principles-section">
+    <div class="section-heading">
+      <span class="section-label">03 / Our method</span>
+      <h2>A useful result comes with enough evidence to challenge it.</h2>
+    </div>
+    <div class="principles-grid">
+      <article>
+        <span>Ⅰ</span>
+        <h3>Inspectable by default</h3>
+        <p>Every result should lead back to a trace, an environment, and code we can read.</p>
+      </article>
+      <article>
+        <span>Ⅱ</span>
+        <h3>Clear about provenance</h3>
+        <p>We label synthetic, model-captured, compiled, and measured data as different things.</p>
+      </article>
+      <article>
+        <span>Ⅲ</span>
+        <h3>Built in the open</h3>
+        <p>We keep the questions, mistakes, revisions, and reasoning in the record.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="home-section journal-section" id="writing">
+    <div class="section-heading">
+      <span class="section-label">04 / The engineering journal</span>
+      <h2>From the first routing question to a reproducible experiment.</h2>
+    </div>
+    <p class="journal-intro">
+      Read the project in order. The original July note is followed by retrospective
+      chapters arranged through September 10 and a current release log. Each
+      retrospective shows its actual publication date; measurements keep their own timestamps.
+    </p>
+    <div class="writing-list">
+      {
+        posts.map((post) => (
+          <a class="writing-card" href={sitePath(`/writing/${post.id}/`)}>
+            <span class="note-number">
+              Entry {String(post.data.number).padStart(3, "0")}
+            </span>
+            <div>
+              <span class="entry-date">{formatDate(post.data.retrospectiveDate ?? post.data.publishedAt)}{post.data.retrospectiveDate ? " · retrospective" : " · project log"}</span>
+              <h3>{post.data.title}</h3>
+              <p>{post.data.description}</p>
+            </div>
+            <span class="writing-arrow" aria-hidden="true">↗</span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
