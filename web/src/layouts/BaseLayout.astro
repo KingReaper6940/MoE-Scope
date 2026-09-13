@@ -91,6 +91,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
         targets.forEach((target) => observer.observe(target));
       };
 
+      prepareReveals();
       document.addEventListener("astro:page-load", prepareReveals);
     </script>
   </body>

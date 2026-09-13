@@ -2,7 +2,7 @@
 title: "Turning the lab into a project we can hand over"
 description: "The current release log: runnable tools, a trace explorer, an evidence page, and an explicit record of what remains open."
 publishedAt: 2026-09-12
-updatedAt: 2026-09-12
+updatedAt: 2026-09-13
 number: 10
 readingTime: "3 min read"
 tags: [release, reproducibility, project log]
@@ -76,6 +76,12 @@ We also added restrained entrance, scroll, chart, hover, and page-transition
 motion. Reduced-motion preferences still take precedence. The interface remains
 within the original cream, ink, and graphite palette; the revision introduces
 no green accents and does not change any captured or measured evidence.
+
+On September 13, we hardened that motion after a deployment preview exposed an
+empty first frame. Content now remains visible throughout every transition, and
+the scroll observer initializes immediately as well as after client-side page
+navigation. Motion can enhance the notebook without becoming a condition for
+reading it.
 
 ## What remains open
 

@@ -1190,31 +1190,27 @@ a {
 }
 
 @keyframes chart-in {
-  from { opacity: 0; transform: scaleY(.94); }
+  from { transform: scaleY(.94); }
 }
 
 @keyframes header-in {
-  from { opacity: 0; transform: translateY(-14px); }
+  from { transform: translateY(-14px); }
 }
 
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(22px); }
+  from { transform: translateY(22px); }
 }
 
 @keyframes scope-card-in {
-  from { opacity: 0; transform: translateY(28px) rotate(1.2deg); }
+  from { transform: translateY(28px) rotate(1.2deg); }
 }
 
 .motion-ready [data-reveal] {
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 720ms cubic-bezier(.22, 1, .36, 1),
-    transform 720ms cubic-bezier(.22, 1, .36, 1);
+  transform: translateY(20px);
+  transition: transform 720ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .motion-ready [data-reveal][data-visible] {
-  opacity: 1;
   transform: translateY(0);
 }
 
