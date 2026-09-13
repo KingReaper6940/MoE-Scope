@@ -12,10 +12,9 @@
   --shared: #535353;
   --warm: #5e5b55;
   --danger: #111111;
-  --sans: Arial, Helvetica, ui-sans-serif, sans-serif;
-  --serif: Iowan Old Style, Baskerville, "Times New Roman", serif;
-  --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas,
-    monospace;
+  --sans: "Inter Variable", Inter, ui-sans-serif, sans-serif;
+  --serif: "Newsreader Variable", Newsreader, Georgia, serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   --page: min(1180px, calc(100vw - 64px));
   --article: 760px;
 }
@@ -33,13 +32,23 @@ body {
   min-width: 320px;
   margin: 0;
   background:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent 27px,
+      rgb(17 17 17 / 16%) 27px,
+      rgb(17 17 17 / 16%) 28px,
+      transparent 28px
+    ),
     repeating-linear-gradient(
       to bottom,
       transparent 0,
       transparent 31px,
-      rgb(17 17 17 / 7%) 32px
+      rgb(17 17 17 / 10%) 31px,
+      rgb(17 17 17 / 10%) 32px
     ),
     var(--ink);
+  background-attachment: fixed;
   color: var(--paper);
   font-family: var(--sans);
   font-size: 16px;
@@ -106,6 +115,7 @@ a {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
+  animation: header-in 650ms cubic-bezier(.22, 1, .36, 1) both;
 }
 
 .wordmark {
@@ -221,6 +231,14 @@ a {
   line-height: 0.86;
 }
 
+.hero-copy > * {
+  animation: rise-in 760ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.hero-copy > :nth-child(2) { animation-delay: 70ms; }
+.hero-copy > :nth-child(3) { animation-delay: 140ms; }
+.hero-copy > :nth-child(4) { animation-delay: 210ms; }
+
 .hero-copy h1 span {
   display: block;
   color: var(--paper);
@@ -287,6 +305,13 @@ a {
   background: var(--surface);
   box-shadow: 8px 8px 0 var(--paper);
   transform: rotate(0.35deg);
+  animation: scope-card-in 900ms 120ms cubic-bezier(.22, 1, .36, 1) both;
+  transition: transform 350ms cubic-bezier(.22, 1, .36, 1), box-shadow 350ms ease;
+}
+
+.hero-scope:hover {
+  box-shadow: 11px 11px 0 var(--paper);
+  transform: rotate(0deg) translate(-3px, -3px);
 }
 
 .scope-topline {
@@ -323,19 +348,20 @@ a {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 7px;
+  gap: 2px;
   align-items: end;
   border-bottom: 1px solid var(--line);
   background:
     linear-gradient(rgb(17 17 17 / 7%) 1px, transparent 1px) 0 0 / 100% 25%,
     var(--surface);
+  transform-origin: bottom;
+  animation: chart-in 760ms 260ms cubic-bezier(.22, 1, .36, 1) both;
 }
 
 
 .scope-chart i {
   min-height: 8px;
   background: var(--faint);
-  animation: scope-in 700ms both;
 }
 
 .scope-chart i:nth-child(1) { height: 18%; }
@@ -1163,11 +1189,39 @@ a {
   font: 500 0.61rem/1.5 var(--mono);
 }
 
-@keyframes scope-in {
-  from {
-    height: 0;
-    opacity: 0;
-  }
+@keyframes chart-in {
+  from { opacity: 0; transform: scaleY(.94); }
+}
+
+@keyframes header-in {
+  from { opacity: 0; transform: translateY(-14px); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(22px); }
+}
+
+@keyframes scope-card-in {
+  from { opacity: 0; transform: translateY(28px) rotate(1.2deg); }
+}
+
+.motion-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 720ms cubic-bezier(.22, 1, .36, 1),
+    transform 720ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.motion-ready [data-reveal][data-visible] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
 }
 
 @media (max-width: 900px) {
@@ -1447,10 +1501,10 @@ a {
 }
 
 /* Laboratory and evidence surfaces share the journal's paper and ink palette. */
-.primary-link { display: inline-flex; align-items: center; padding: 13px 18px; background: var(--paper); color: var(--ink); text-decoration: none; font: 600 .76rem/1.4 var(--mono); }
-.primary-link:hover { background: var(--paper); color: var(--ink); }
-.hero-scope { transform: none; box-shadow: 7px 7px 0 #dfddd4; }
+.primary-link { display: inline-flex; align-items: center; padding: 13px 18px; border: 1px solid var(--paper); background: var(--paper); color: var(--ink); box-shadow: 0 0 0 var(--paper); text-decoration: none; font: 600 .76rem/1.4 var(--mono); transition: transform 220ms ease, box-shadow 220ms ease; }
+.primary-link:hover { background: var(--paper); color: var(--ink); box-shadow: 4px 4px 0 var(--paper); transform: translate(-4px, -4px); }
 .scope-chart i { background: var(--shared) !important; }
+.scope-chart i:nth-child(8n + 4) { background: var(--paper) !important; }
 .scope-caption { display: block; padding: 15px; font: .68rem/1.5 var(--mono); text-decoration: none; border-top: 1px solid var(--line); }
 .release-strip { width: var(--page); margin: 0 auto 100px; display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--paper); }
 .release-strip > div { padding: 25px 20px; border-right: 1px solid var(--line); }

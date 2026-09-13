@@ -1,5 +1,10 @@
 ---
 import { sitePath } from "../lib/links";
+import { ClientRouter } from "astro:transitions";
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/newsreader/index.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/600.css";
 import "../styles/global.css";
 
 interface Props {
@@ -30,6 +35,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
+    <ClientRouter />
+    <script is:inline>
+      document.documentElement.classList.add("motion-ready");
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>
@@ -55,5 +64,34 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
         <a href="https://github.com/KingReaper6940/MoE-Scope/blob/main/LICENSE">MIT</a>
       </div>
     </footer>
+    <script>
+      const prepareReveals = () => {
+        const targets = document.querySelectorAll(
+          ".home-section, .page-heading, .release-strip, .lab-panel, .article-header, .article-body > :not(script), .wide-figure",
+        );
+
+        targets.forEach((target) => target.setAttribute("data-reveal", ""));
+
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          targets.forEach((target) => target.setAttribute("data-visible", ""));
+          return;
+        }
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              entry.target.setAttribute("data-visible", "");
+              observer.unobserve(entry.target);
+            });
+          },
+          { rootMargin: "0px 0px -8%", threshold: 0.08 },
+        );
+
+        targets.forEach((target) => observer.observe(target));
+      };
+
+      document.addEventListener("astro:page-load", prepareReveals);
+    </script>
   </body>
 </html>
